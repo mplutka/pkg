@@ -1606,7 +1606,7 @@ function payloadFileSync(pointer) {
   }
 
   function revertMakingLong(f) {
-    const prefixRegex = /^\\\\\?[\\]+|^\/\*\*/
+    const prefixRegex = /^\\\\\?[\\]+|\/\*\*/
     if (prefixRegex.test(f)) return f.replace(prefixRegex, '');
     return f;
   }
