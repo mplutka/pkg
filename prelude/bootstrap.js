@@ -1606,7 +1606,8 @@ function payloadFileSync(pointer) {
   }
 
   function revertMakingLong(f) {
-    if (/^\\\\\?\\/.test(f)) return f.slice(4);
+    const prefixRegex = /^\\\\\?[\\]+/
+    if (prefixRegex.test(f)) return f.replace(prefixRegex, '');
     return f;
   }
 
@@ -2054,11 +2055,6 @@ function payloadFileSync(pointer) {
   const ancestor = {
     dlopen: process.dlopen,
   };
-
-  function revertMakingLong(f) {
-    if (/^\\\\\?\\/.test(f)) return f.slice(4);
-    return f;
-  }
 
   process.dlopen = function dlopen() {
     const args = cloneArgs(arguments);
