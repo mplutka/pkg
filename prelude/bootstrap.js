@@ -350,6 +350,12 @@ function findNativeAddonSyncUnderRequire(path_) {
   return findNativeAddonSyncFreeFromRequire(path_);
 }
 
+function revertMakingLong(f) {
+  const prefixRegex = /^\\\\\?[\\]+|\/\*\*/
+  if (prefixRegex.test(f)) return f.replace(prefixRegex, '');
+  return f;
+}
+
 // /////////////////////////////////////////////////////////////////
 // FLOW UTILS //////////////////////////////////////////////////////
 // /////////////////////////////////////////////////////////////////
@@ -1603,12 +1609,6 @@ function payloadFileSync(pointer) {
 
   function makeLong(f) {
     return path._makeLong(f);
-  }
-
-  function revertMakingLong(f) {
-    const prefixRegex = /^\\\\\?[\\]+|\/\*\*/
-    if (prefixRegex.test(f)) return f.replace(prefixRegex, '');
-    return f;
   }
 
   function findNativeAddonForInternalModuleStat(path_) {
