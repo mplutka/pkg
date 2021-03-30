@@ -350,11 +350,11 @@ function findNativeAddonSyncUnderRequire(path_) {
   return findNativeAddonSyncFreeFromRequire(path_);
 }
 
-function revertMakingLong(f) {
-  return f.replace(this.prefixRegex, '');
-}
+const prefixRegex = /^\\\\\?[\\]+|\/\*\*/
 
-revertMakingLong.prefixRegex = /^\\\\\?[\\]+|\/\*\*/
+function revertMakingLong(f) {
+  return f.replace(prefixRegex, '');
+}
 
 // /////////////////////////////////////////////////////////////////
 // FLOW UTILS //////////////////////////////////////////////////////
