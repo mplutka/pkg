@@ -2085,20 +2085,26 @@ function payloadFileSync(pointer) {
         // Example: modulePackagePath = sharp/build/Release
         const modulePackagePath = parts.slice(mIndex).join(path.sep);
         // Example: modulePkgFolder = /snapshot/appname/node_modules/sharp
-        const modulePkgFolder = parts.slice(0, mIndex + 1).join(path.sep);
+        const modulePackageFolder = parts.slice(0, mIndex + 1).join(path.sep);
 
         if (!fs.existsSync(tmpFolder)) {
           // here we copy all files from the snapshot module folder to temporary folder
-          // we keep the module folder structure to prevent issues with modules that are statically
+          // we keep the module folder structure to prevent issues with modules that are dynamically
           // linked using relative paths (Fix #1075)
           createDirRecursively(tmpFolder);
-          copyFolderRecursiveSync(modulePkgFolder, tmpFolder);
+          copyFolderRecursiveSync(modulePackageFolder, tmpFolder);
         }
 
         // Example: /tmp/pkg/<hash>/sharp/build/Release/sharp.node
         newPath = path.join(tmpFolder, modulePackagePath, moduleBaseName);
       } else {
         // simple load the file in the temporary folder
+        if (!fs.existsSync(tmpFolder)) {
+          createDirRecursively(tmpFolder);
+          copyFileSync(modulePath, tmpFolder);
+        }
+
+        // load the copied file in the temporary folder
         newPath = path.join(tmpFolder, moduleBaseName);
       }
 
