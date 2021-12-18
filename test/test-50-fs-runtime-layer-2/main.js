@@ -30,7 +30,8 @@ function bitty(version) {
     (8 * /^(node|v)?11/.test(version)) |
     (16 * /^(node|v)?12/.test(version)) |
     (16 * /^(node|v)?13/.test(version)) |
-    (32 * /^(node|v)?14/.test(version))
+    (32 * /^(node|v)?14/.test(version)) |
+    (32 * /^(node|v)?16/.test(version))
   );
 }
 
@@ -56,16 +57,9 @@ right = right.split('\n');
 // right may have less lines, premature exit,
 // less trusted, so using left.length here
 for (let i = 0; i < left.length; i += 1) {
-  if (/is out of range/.test(right[i])) {
-    let rval = right[i].replace('>= 0 && ', '');
-    if (left[i] === rval) {
-      right[i] = rval;
-    } else {
-      rval = right[i].replace(/ && <= [0-9]/, '');
-      if (left[i] === rval) {
-        right[i] = rval;
-      }
-    }
+  if (/is out of range/.test(left[i]) && /is out of range/.test(right[i])) {
+    left[i] = left[i].replace(/ It must be .*\. /, ' ');
+    right[i] = right[i].replace(/ It must be .*\. /, ' ');
   }
   assert.strictEqual(left[i], right[i]);
 }

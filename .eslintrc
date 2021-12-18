@@ -1,18 +1,8 @@
 {
-  "extends": [
-    "airbnb-base",
-    "prettier"
-  ],
-  "parser": "@babel/eslint-parser",
-  "parserOptions": {
-    "sourceType": "module",
-    "requireConfigFile": false
-  },
+  "extends": ["airbnb-base", "prettier"],
   "rules": {
-    "wrap-iife": "off",
     "no-bitwise": "off",
     "no-continue": "off",
-    "class-methods-use-this": "off",
     "no-await-in-loop": "off",
     "no-constant-condition": "off",
     "no-param-reassign": "off",
@@ -23,12 +13,35 @@
   },
   "overrides": [
     {
+      "files": ["*.ts"],
+      "extends": [
+        "airbnb-typescript/base",
+        "plugin:@typescript-eslint/recommended",
+        "prettier"
+      ],
+      "parser": "@typescript-eslint/parser",
+      "parserOptions": {
+        "project": "./tsconfig.json"
+      },
+      "rules": {
+        "@typescript-eslint/explicit-module-boundary-types": "off",
+        "consistent-return": "off",
+        "import/prefer-default-export": "off",
+        "no-await-in-loop": "off",
+        "no-bitwise": "off",
+        "no-constant-condition": "off",
+        "no-continue": "off",
+        "no-param-reassign": "off",
+        "no-restricted-syntax": "off"
+      }
+    },
+    {
       "files": ["prelude/**/*"],
       "rules": {
         "strict": "off"
-      },
-    }   
-    , {
+      }
+    },
+    {
       "files": ["test/**/*"],
       "rules": {
         "array-callback-return": "off",
@@ -57,5 +70,5 @@
         "strict": ["error", "global"]
       }
     }
- ]  
+  ]
 }

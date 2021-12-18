@@ -3,8 +3,6 @@
 ![](https://res.cloudinary.com/zeit-inc/image/upload/v1509936789/repositories/pkg/pkg-repo-banner-new.png)
 
 [![Build Status](https://github.com/vercel/pkg/actions/workflows/ci.yml/badge.svg)](https://github.com/vercel/pkg/actions/workflows/ci.yml)
-[![Dependency Status](https://david-dm.org/vercel/pkg/status.svg)](https://david-dm.org/vercel/pkg)
-[![devDependency Status](https://david-dm.org/vercel/pkg/dev-status.svg)](https://david-dm.org/vercel/pkg?type=dev)
 
 This command line interface enables you to package your Node.js project into an executable that can be run even on devices without Node.js installed.
 
@@ -26,7 +24,50 @@ This command line interface enables you to package your Node.js project into an 
 npm install -g pkg
 ```
 
-After installing it, run `pkg --help` without arguments to see list of options.
+After installing it, run `pkg --help` without arguments to see list of options:
+
+```bash
+pkg [options] <input>
+
+  Options:
+
+    -h, --help           output usage information
+    -v, --version        output pkg version
+    -t, --targets        comma-separated list of targets (see examples)
+    -c, --config         package.json or any json file with top-level config
+    --options            bake v8 options into executable to run with them on
+    -o, --output         output file name or template for several files
+    --out-path           path to save output one or more executables
+    -d, --debug          show more information during packaging process [off]
+    -b, --build          don't download prebuilt base binaries, build them
+    --public             speed up and disclose the sources of top-level project
+    --public-packages    force specified packages to be considered public
+    --no-bytecode        skip bytecode generation and include source files as plain js
+    --no-native-build    skip native addons build
+    --no-dict            comma-separated list of packages names to ignore dictionaries. Use --no-dict * to disable all dictionaries
+    -C, --compress       [default=None] compression algorithm = Brotli or GZip
+
+  Examples:
+
+  – Makes executables for Linux, macOS and Windows
+    $ pkg index.js
+  – Takes package.json from cwd and follows 'bin' entry
+    $ pkg .
+  – Makes executable for particular target machine
+    $ pkg -t node14-win-arm64 index.js
+  – Makes executables for target machines of your choice
+    $ pkg -t node12-linux,node14-linux,node14-win index.js
+  – Bakes '--expose-gc' and '--max-heap-size=34' into executable
+    $ pkg --options "expose-gc,max-heap-size=34" index.js
+  – Consider packageA and packageB to be public
+    $ pkg --public-packages "packageA,packageB" index.js
+  – Consider all packages to be public
+    $ pkg --public-packages "*" index.js
+  – Bakes '--expose-gc' into executable
+    $ pkg --options expose-gc index.js
+  – reduce size of the data packed inside the executable with GZip
+    $ pkg --compress GZip index.js
+```
 
 The entrypoint of your project is a mandatory CLI argument. It may be:
 
@@ -42,18 +83,39 @@ The entrypoint of your project is a mandatory CLI argument. It may be:
 `pkg` can generate executables for several target machines at a
 time. You can specify a comma-separated list of targets via `--targets`
 option. A canonical target consists of 3 elements, separated by
-dashes, for example `node6-macos-x64` or `node4-linux-armv6`:
+dashes, for example `node12-macos-x64` or `node14-linux-arm64`:
 
-- **nodeRange** node${n} or latest
-- **platform** freebsd, linux, alpine, macos, win
-- **arch** x64, x86, armv6, armv7
+- **nodeRange** (node8), node10, node12, node14, node16 or latest
+- **platform** alpine, linux, linuxstatic, win, macos, (freebsd)
+- **arch** x64, arm64, (armv6, armv7)
 
-You may omit any element (and specify just `node6` for example).
+(element) is unsupported, but you may try to compile yourself.
+
+You may omit any element (and specify just `node14` for example).
 The omitted elements will be taken from current platform or
 system-wide Node.js installation (its version and arch).
 There is also an alias `host`, that means that all 3 elements
 are taken from current platform/Node.js. By default targets are
 `linux,macos,win` for current Node.js version and arch.
+
+If you want to generate executable for different architectures,
+note that by default `pkg` has to run the executable of the
+**target** arch to generate bytecodes:
+
+- Linux: configure binfmt with [QEMU](https://wiki.debian.org/QemuUserEmulation).
+- macOS: possible to build `x64` on `arm64` with `Rosetta 2` but not opposite.
+- Windows: possible to build `x64` on `arm64` with `x64 emulation` but not opposite.
+- or, disable bytecode generation with `--no-bytecode --public-packages "*" --public`.
+
+`macos-arm64` is experimental. Be careful about the [mandatory code signing requirement](https://developer.apple.com/documentation/macos-release-notes/macos-big-sur-11_0_1-universal-apps-release-notes).
+The final executable has to be signed (ad-hoc signature is sufficient) with `codesign`
+utility of macOS (or `ldid` utility on Linux). Otherwise, the executable will be killed
+by kernel and the end-user has no way to permit it to run at all. `pkg` tries to ad-hoc
+sign the final executable. If necessary, you can replace this signature with your own
+trusted Apple Developer ID.
+
+To be able to generate executables for all supported architectures and platforms, run
+`pkg` on a Linux host with binfmt (`QEMU` emulation) configured and `ldid` installed.
 
 ### Config
 
@@ -79,13 +141,13 @@ your `package.json` file.
   "pkg": {
     "scripts": "build/**/*.js",
     "assets": "views/**/*",
-    "targets": [ "node4-linux-armv6" ],
+    "targets": [ "node14-linux-arm64" ],
     "outputPath": "dist"
   }
 ```
 
 The above example will include everything in `assets/` and
-every .js file in `build/`, build only for `node4-linux-armv6`,
+every .js file in `build/`, build only for `node14-linux-arm64`,
 and place the executable inside `dist/`.
 
 You may also specify arrays of globs:
@@ -121,14 +183,17 @@ See also
 ### Options
 
 Node.js application can be called with runtime options
-(belonging to Node.js or V8). To list them type `node --help` or
-`node --v8-options`. You can "bake" these runtime options into
-packaged application. The app will always run with the options
+(belonging to Node.js or V8). To list them type `node --help` or `node --v8-options`.
+
+You can "bake" these runtime options into packaged application. The app will always run with the options
 turned on. Just remove `--` from option name.
+
+You can specify multiple options by joining them in a single string, comma (`,`) separated:
 
 ```sh
 pkg app.js --options expose-gc
 pkg app.js --options max_old_space_size=4096
+pkg app.js --options max-old-space-size=1024,tls-min-v1.0,expose-gc
 ```
 
 ### Output
@@ -147,7 +212,7 @@ into executable), it may be useful to look through the log.
 By default, your source code is precompiled to v8 bytecode before being written
 to the output file. To disable this feature, pass `--no-bytecode` to `pkg`.
 
-> Why would you want to do this?
+#### Why would you want to do this?
 
 If you need a reproducible build
 process where your executable hashes (e.g. md5, sha1, sha256, etc.) are the
@@ -157,7 +222,7 @@ same value between builds. Because compiling bytecode is not deterministic
 results in executables with differing hashed values. Disabling bytecode
 compilation allows a given input to always have the same output.
 
-> Why would you NOT want to do this?
+#### Why would you NOT want to do this?
 
 While compiling to bytecode does not make your source code 100% secure, it does
 add a small layer of security/privacy/obscurity to your source code. Turning
@@ -165,6 +230,17 @@ off bytecode compilation causes the raw source code to be written directly to
 the executable file. If you're on \*nix machine and would like an example, run
 `pkg` with the `--no-bytecode` flag, and use the GNU strings tool on the
 output. You then should be able to grep your source code.
+
+#### Other considerations
+
+Specifying `--no-bytecode` will fail if there are any packages in your project that aren't explicitly marked
+as public by the `license` in their `package.json`.
+By default, `pkg` will check the license of each package and make sure that stuff that isn't meant for the public will
+only be included as bytecode.
+
+If you do require building pkg binaries for other architectures and/or depend on a package with a broken
+`license` in its `package.json`, you can override this behaviour by either explicitly whitelisting packages to be public
+using `--public-packages "packageA,packageB"` or setting all packages to public using `--public-packages "*"`
 
 ### Build
 
@@ -176,7 +252,19 @@ application. If you prefer to compile base binaries from
 source instead of downloading them, you may pass `--build`
 option to `pkg`. First ensure your computer meets the
 requirements to compile original Node.js:
-[BUILDING.md](https://github.com/nodejs/node/blob/master/BUILDING.md)
+[BUILDING.md](https://github.com/nodejs/node/blob/HEAD/BUILDING.md)
+
+See [pkg-fetch](https://github.com/vercel/pkg-fetch) for more info.
+
+### Compression
+
+Pass `--compress Brotli` or `--compress GZip` to `pkg` to compress further the content of the files store in the exectable.
+
+This option can reduce the size of the embedded file system by up to 60%.
+
+The startup time of the application might be reduced slightly.
+
+`-C` can be used as a shortcut for `--compress `.
 
 ### Environment
 
@@ -272,6 +360,9 @@ to `--target` option. You should specify the same Node.js version
 as your system-wide Node.js to make compiled executable compatible
 with `.node` files.
 
+Note that fully static Node binaries are not capable of loading native
+bindings, so you may not use Node bindings with `linuxstatic`.
+
 ## API
 
 `const { exec } = require('pkg')`
@@ -324,7 +415,7 @@ and check that all the required files for your application are properly
 incorporated to the final executable.
 
     $ pkg --debug app.js -o output
-    $ DEBUG_PKG output
+    $ DEBUG_PKG=1 output
 
 or
 
